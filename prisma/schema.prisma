@@ -1,0 +1,43 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String       @id @default(cuid())
+  email            String       @unique
+  name             String?
+  password         String       @default("$2a$10$O9wRByY8.9lF.b2O4E6e1e") // Default hashed "password"
+  documents        Document[]   @relation("Owner")
+  sharedDocuments  Document[]   @relation("Shared")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model Document {
+  id          String       @id @default(cuid())
+  title       String
+  content     String       // JSON string for Tiptap content
+  ownerId     String
+  owner       User         @relation("Owner", fields: [ownerId], references: [id])
+  sharedWith  User[]       @relation("Shared")
+  attachments Attachment[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Attachment {
+  id         String   @id @default(cuid())
+  filename   String
+  url        String
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+}

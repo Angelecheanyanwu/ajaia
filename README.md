@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ajaia Docs
 
-## Getting Started
+A lightweight, collaborative document editor inspired by Google Docs, built for fast-moving teams.
 
-First, run the development server:
+## Features
+
+- **Rich-Text Editing**: Bold, Italic, Underline, Headings, and Lists.
+- **Simulated Auth**: Instant account creation - just enter an email to start.
+- **Document Sharing**: Share documents with teammates via email.
+- **File Import**: Import `.txt` and `.md` files directly.
+- **Auto-save**: Real-time content persistence.
+- **Premium Design**: Modern, glassmorphic UI with responsive layouts.
+
+## Tech Stack
+
+- **Frontend**: Next.js 15 (App Router), Tailwind CSS 4, Lucide Icons.
+- **Editor**: Tiptap Rich-Text Framework.
+- **Backend**: Next.js API Routes, NextAuth.js (Beta).
+- **Persistence**: Prisma ORM with SQLite.
+
+## Setup Instructions
+
+### Prerequisites
+- Node.js >= 20.9.0
+- npm or yarn
+
+### Installation
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Set up the database:
+   ```bash
+   npx prisma db push
+   npx prisma generate
+   ```
+
+3. Set up environment variables:
+   Create a `.env` file (if not present) and add:
+   ```env
+   DATABASE_URL="file:./dev.db"
+   AUTH_SECRET="your-secret-key"
+   AUTH_URL="http://localhost:3000"
+   ```
+
+### Running Locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
+Open [http://localhost:3000](http://localhost:3000) to view the portal.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Testing
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Run the logic verification script:
+```bash
+npx ts-node lib/sharing.test.ts
+```
+(Or use your preferred test runner)
