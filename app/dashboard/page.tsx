@@ -29,6 +29,8 @@ export default function DashboardPage() {
   const [shareDoc, setShareDoc] = useState<any | null>(null);
   const [shareEmail, setShareEmail] = useState("");
   const [sharing, setSharing] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const router = useRouter();
 
   const fetchDocuments = async () => {
@@ -79,16 +81,27 @@ export default function DashboardPage() {
     const formData = new FormData();
     formData.append("file", file);
 
+    setUploading(true);
     try {
       const res = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
-      const doc = await res.json();
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to upload file");
+      }
+
       toast.success("File imported successfully");
-      router.push(`/documents/${doc.id}`);
-    } catch (error) {
-      toast.error("Failed to upload file");
+      router.push(`/documents/${data.id}`);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to upload file");
+    } finally {
+      setUploading(false);
+      // Reset input value to allow uploading same file again
+      event.target.value = "";
     }
   };
 
@@ -104,6 +117,7 @@ export default function DashboardPage() {
       if (res.ok) {
         toast.success(`Shared with ${shareEmail}`);
         setShareEmail("");
+        setShareSuccess(true);
         fetchDocuments();
         // Update shareDoc to reflect new collaborator
         const updated = await fetch(`/api/documents/${shareDoc.id}`);
@@ -135,10 +149,23 @@ export default function DashboardPage() {
         </div>
         
         <div className="flex gap-3">
-          <label className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-2xl bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm">
-            <Upload size={18} className="text-gray-400" />
-            <span>Import</span>
-            <input type="file" className="hidden" onChange={handleFileUpload} accept=".txt,.md,.docx" />
+          <label className={cn(
+            "cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-2xl bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm",
+            uploading && "opacity-50 cursor-not-allowed"
+          )}>
+            {uploading ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+            ) : (
+              <Upload size={18} className="text-gray-400" />
+            )}
+            <span>{uploading ? "Importing..." : "Import"}</span>
+            <input 
+              type="file" 
+              className="hidden" 
+              onChange={handleFileUpload} 
+              accept=".txt,.md,.docx" 
+              disabled={uploading}
+            />
           </label>
           <button
             onClick={createDocument}
@@ -190,7 +217,10 @@ export default function DashboardPage() {
                     key={doc.id}
                     doc={doc}
                     onDelete={() => setDeleteId(doc.id)}
-                    onShare={() => setShareDoc(doc)}
+                    onShare={() => {
+                      setShareDoc(doc);
+                      setShareSuccess(false);
+                    }}
                     isOwner={true}
                   />
                 ))}
@@ -298,35 +328,56 @@ export default function DashboardPage() {
               </div>
             )}
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5 pl-1">Add by email</label>
-                <input
-                  type="email"
-                  placeholder="name@example.com"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
-                  value={shareEmail}
-                  onChange={(e) => setShareEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && shareDocument()}
-                />
-              </div>
-              
-              <div className="flex flex-col gap-2 pt-1">
+            {shareSuccess ? (
+              <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-in fade-in zoom-in duration-300">
+                <div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center shadow-inner">
+                  <Check size={40} strokeWidth={3} />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-xl font-bold text-gray-900">Successfully Shared!</h3>
+                  <p className="text-sm text-gray-500 mt-1">Invitation has been sent.</p>
+                </div>
                 <button
-                  onClick={shareDocument}
-                  disabled={!shareEmail || sharing}
-                  className="w-full py-3 bg-blue-600 rounded-xl text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {sharing ? "Sharing..." : "Send Invite"}
-                </button>
-                <button
-                  onClick={() => { setShareDoc(null); setShareEmail(""); }}
-                  className="w-full py-3 bg-gray-50 rounded-xl text-gray-600 font-bold hover:bg-gray-100 transition-all"
+                  onClick={() => {
+                    setShareDoc(null);
+                    setShareSuccess(false);
+                  }}
+                  className="w-full mt-4 py-3 bg-gray-900 rounded-xl text-white font-bold hover:bg-black transition-all"
                 >
                   Done
                 </button>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5 pl-1">Add by email</label>
+                  <input
+                    type="email"
+                    placeholder="name@example.com"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+                    value={shareEmail}
+                    onChange={(e) => setShareEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && shareDocument()}
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-2 pt-1">
+                  <button
+                    onClick={shareDocument}
+                    disabled={!shareEmail || sharing}
+                    className="w-full py-3 bg-blue-600 rounded-xl text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sharing ? "Sharing..." : "Send Invite"}
+                  </button>
+                  <button
+                    onClick={() => { setShareDoc(null); setShareEmail(""); }}
+                    className="w-full py-3 bg-gray-50 rounded-xl text-gray-600 font-bold hover:bg-gray-100 transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

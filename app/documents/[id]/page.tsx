@@ -17,7 +17,8 @@ import {
   FileUp,
   File,
   X,
-  Plus
+  Plus,
+  Check
 } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -30,12 +31,18 @@ export default function DocumentPage() {
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState("");
   const [showShareModal, setShowShareModal] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
   const [attachments, setAttachments] = useState<any[]>([]);
 
   const fetchDocument = async () => {
     try {
       const res = await fetch(`/api/documents/${id}`);
+      if (res.status === 403) {
+        toast.error("You don't have access to this document.");
+        setLoading(false);
+        return;
+      }
       if (!res.ok) throw new Error("Document not found");
       const data = await res.json();
       setDoc(data);
@@ -43,7 +50,6 @@ export default function DocumentPage() {
       setAttachments(data.attachments || []);
     } catch (error) {
       toast.error("Failed to load document");
-      router.push("/dashboard");
     } finally {
       setLoading(false);
     }
@@ -94,7 +100,7 @@ export default function DocumentPage() {
       if (res.ok) {
         toast.success(`Shared with ${shareEmail}`);
         setShareEmail("");
-        setShowShareModal(false);
+        setShareSuccess(true);
         fetchDocument();
       } else {
         const err = await res.json();
@@ -178,6 +184,14 @@ export default function DocumentPage() {
     );
   }
 
+  if (!doc) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <p className="text-gray-500 font-medium">Document not found or access denied.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -218,7 +232,10 @@ export default function DocumentPage() {
             <input type="file" className="hidden" onChange={handleImportToDraft} accept=".txt,.md,.docx" />
           </label>
           <button
-            onClick={() => setShowShareModal(true)}
+            onClick={() => {
+              setShowShareModal(true);
+              setShareSuccess(false);
+            }}
             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-xl bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
           >
             <Share2 size={18} />
@@ -286,33 +303,54 @@ export default function DocumentPage() {
               </div>
             </div>
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5 pl-1">Email address</label>
-                <input
-                  type="email"
-                  placeholder="name@example.com"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
-                  value={shareEmail}
-                  onChange={(e) => setShareEmail(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex flex-col gap-2 pt-2">
+            {shareSuccess ? (
+              <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-in fade-in zoom-in duration-300">
+                <div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center shadow-inner">
+                  <Check size={40} strokeWidth={3} />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-xl font-bold text-gray-900">Successfully Shared!</h3>
+                  <p className="text-sm text-gray-500 mt-1">Invitation has been sent.</p>
+                </div>
                 <button
-                  onClick={shareDocument}
-                  className="w-full py-3 bg-blue-600 rounded-xl text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition-all"
+                  onClick={() => {
+                    setShowShareModal(false);
+                    setShareSuccess(false);
+                  }}
+                  className="w-full mt-4 py-3 bg-gray-900 rounded-xl text-white font-bold hover:bg-black transition-all"
                 >
-                  Send Invite
-                </button>
-                <button
-                  onClick={() => setShowShareModal(false)}
-                  className="w-full py-3 bg-gray-50 rounded-xl text-gray-600 font-bold hover:bg-gray-100 transition-all"
-                >
-                  Cancel
+                  Done
                 </button>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5 pl-1">Email address</label>
+                  <input
+                    type="email"
+                    placeholder="name@example.com"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+                    value={shareEmail}
+                    onChange={(e) => setShareEmail(e.target.value)}
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-2 pt-2">
+                  <button
+                    onClick={shareDocument}
+                    className="w-full py-3 bg-blue-600 rounded-xl text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition-all"
+                  >
+                    Send Invite
+                  </button>
+                  <button
+                    onClick={() => setShowShareModal(false)}
+                    className="w-full py-3 bg-gray-50 rounded-xl text-gray-600 font-bold hover:bg-gray-100 transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
